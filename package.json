@@ -1,0 +1,40 @@
+{
+  "name": "cursai",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "concurrently npm:dev:web npm:dev:electron",
+    "build": "tsc -b && vite build",
+    "lint": "oxlint",
+    "preview": "vite preview",
+    "dev:web": "vite",
+    "dev:electron": "wait-on http://localhost:5173 && electron ."
+  },
+  "dependencies": {
+    "@fontsource/inter": "^5.3.0",
+    "@nut-tree-fork/nut-js": "^4.2.6",
+    "@whisper-cpp-node/core": "^0.2.0",
+    "@whisper-cpp-node/win32-x64": "^0.2.11",
+    "concurrently": "^10.0.5",
+    "dotenv": "^17.4.2",
+    "electron": "^44.3.0",
+    "electron-builder": "^26.15.3",
+    "lucide-react": "^1.46.0",
+    "openai": "^7.15.0",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8",
+    "wait-on": "^9.1.0"
+  },
+  "devDependencies": {
+    "@electron/rebuild": "^4.2.0",
+    "@types/node": "^24.13.4",
+    "@types/react": "^19.2.18",
+    "@types/react-dom": "^19.2.7",
+    "@vitejs/plugin-react": "^6.1.1",
+    "oxlint": "^1.81.0",
+    "typescript": "~6.0.2",
+    "vite": "^8.3.0"
+  },
+  "main": "electron/main.cjs"
+}

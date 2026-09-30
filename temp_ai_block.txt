@@ -1,0 +1,39 @@
+ipcMain.on("follower-state", (_, state) => {
+  if (!follower || follower.isDestroyed()) return;
+
+  follower.webContents.send("follower-state", state);
+});
+
+ipcMain.handle("ask-ai", async (_, message) => {
+  if (!process.env.OPENAI_API_KEY) {
+    return {
+      success: false,
+      error: "OPENAI_API_KEY wurde nicht gefunden."
+    };
+  }
+
+  try {
+    if (!openaiClient) {
+      const OpenAI = require("openai");
+
+      openaiClient = new OpenAI({
+        apiKey: process.env.OPENAI_API_KEY
+      });
+    }
+
+    const response = await openaiClient.responses.create({
+      model: "gpt-5.6-luna",
+      input: message
+    });
+
+    return {
+      success: true,
+      text: response.output_text
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: error?.message || "OpenAI API Fehler."
+    };
+  }
+});
