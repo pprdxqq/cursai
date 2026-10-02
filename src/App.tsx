@@ -1,115 +1,39 @@
-import { useEffect, useMemo, useState } from "react";
-import { Bot, Brain, Camera, ChevronDown, Command, Github, Grip, Mic, Paperclip, Settings, Sparkles, X } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { Bot, Brain, Camera, ChevronDown, Command, Github, Grip, Keyboard, Mic, Paperclip, Settings, Sparkles, X, MousePointer2, Send, Square } from "lucide-react";
 
-type Message = { role: "user" | "assistant"; text: string };
+type Message={role:"user"|"assistant";text:string};
+type Mode="chat"|"control"|"settings";
+const features=[{icon:Brain,label:"AI",desc:"Chat & reasoning"},{icon:Camera,label:"Vision",desc:"See your screen"},{icon:Command,label:"Control",desc:"Control your PC"},{icon:Github,label:"Dev",desc:"Developer mode"}];
 
-const features = [
-  { icon: Brain, label: "AI", desc: "Chat & reasoning" },
-  { icon: Camera, label: "Vision", desc: "Screen context" },
-  { icon: Command, label: "Control", desc: "PC actions" },
-  { icon: Github, label: "Dev", desc: "Projects & agents" }
-];
+export default function App(){
+  const [expanded,setExpanded]=useState(true),[mode,setMode]=useState<Mode>("chat"),[input,setInput]=useState(""),[thinking,setThinking]=useState(false),[recording,setRecording]=useState(false),[messages,setMessages]=useState<Message[]>([{role:"assistant",text:"Hey. I’m Cursai. What are we building?"}]),[cursor,setCursor]=useState({x:0,y:0}),[vision,setVision]=useState(false),[settings,setSettings]=useState({voice:true,alwaysOnTop:true});
+  const recorder=useRef<MediaRecorder|null>(null),chunks=useRef<Blob[]>([]);
 
-export default function App() {
-  const [expanded, setExpanded] = useState(true);
-  const [input, setInput] = useState("");
-  const [thinking, setThinking] = useState(false);
-  const [messages, setMessages] = useState<Message[]>([
-    { role: "assistant", text: "Hey. I’m Cursai. What are we building?" }
-  ]);
-  const [cursor, setCursor] = useState({ x: 0, y: 0 });
+  useEffect(()=>{window.cursai.settings.get().then(v=>setSettings(s=>({...s,...v}))).catch(()=>{});const move=(e:MouseEvent)=>setCursor({x:e.clientX,y:e.clientY});window.addEventListener("mousemove",move);return()=>window.removeEventListener("mousemove",move)},[]);
 
-  useEffect(() => {
-    const onMove = (e: MouseEvent) => setCursor({ x: e.clientX, y: e.clientY });
-    window.addEventListener("mousemove", onMove);
-    return () => window.removeEventListener("mousemove", onMove);
-  }, []);
-
-  const status = useMemo(() => thinking ? "Thinking" : "Ready", [thinking]);
-
-  async function ask() {
-    const text = input.trim();
-    if (!text || thinking) return;
-    setInput("");
-    setMessages(m => [...m, { role: "user", text }]);
-    setThinking(true);
-    const result = await window.cursai.ai.ask({ message: text });
-    setMessages(m => [...m, {
-      role: "assistant",
-      text: result.success ? (result.text || "Done.") : (result.error || "Something went wrong.")
-    }]);
-    setThinking(false);
+  async function ask(text=input){const value=text.trim();if(!value||thinking)return;setInput("");setMode("chat");setMessages(m=>[...m,{role:"user",text:value}]);setThinking(true);const r=await window.cursai.ai.ask({message:value});setMessages(m=>[...m,{role:"assistant",text:r.success?(r.text||"Done."):r.error||"Something went wrong."}]);setThinking(false);}
+  async function inspectScreen(){setMode("chat");setVision(true);setThinking(true);const image=await window.cursai.screen.capture();const r=await window.cursai.ai.vision({image,question:input.trim()||"Analyse my screen. Tell me what is visible, what matters, and what I should do next."});setMessages(m=>[...m,{role:"assistant",text:r.success?(r.text||"I couldn't find anything useful."):r.error||"Vision failed."}]);setInput("");setVision(false);setThinking(false);}
+  async function toggleVoice(){
+    if(recording){recorder.current?.stop();return}
+    if(!navigator.mediaDevices?.getUserMedia){setMessages(m=>[...m,{role:"assistant",text:"Microphone recording is not available."}]);return}
+    try{const stream=await navigator.mediaDevices.getUserMedia({audio:true});const r=new MediaRecorder(stream,{mimeType:"audio/webm"});chunks.current=[];recorder.current=r;r.ondataavailable=e=>{if(e.data.size)chunks.current.push(e.data)};r.onstop=async()=>{stream.getTracks().forEach(t=>t.stop());setRecording(false);setThinking(true);const buffer=await new Blob(chunks.current,{type:"audio/webm"}).arrayBuffer();const result=await window.cursai.ai.transcribe(buffer);if(result.success&&result.text)await ask(result.text);else setMessages(m=>[...m,{role:"assistant",text:result.error||"I couldn't understand the recording."}]);setThinking(false)};r.start();setRecording(true)}catch{setMessages(m=>[...m,{role:"assistant",text:"Microphone permission was denied or unavailable."}])}
   }
+  async function attach(){const picker=document.createElement("input");picker.type="file";picker.accept="text/*,.json,.md,.js,.ts,.tsx,.py,.cjs,.css,.html";picker.click();picker.onchange=async()=>{const f=picker.files?.[0];if(!f)return;const t=await f.text();setInput(v=>v+"\n\nFile: "+f.name+"\n"+t.slice(0,12000))}}
+  async function pc(action:()=>Promise<unknown>){try{await action()}catch(e){setMessages(m=>[...m,{role:"assistant",text:e instanceof Error?e.message:"PC action failed."}])}}
+  async function saveSetting(key:"voice"|"alwaysOnTop",value:boolean){setSettings(s=>({...s,[key]:value}));await window.cursai.settings.set({[key]:value})}
 
-  return (
-    <main className={`shell ${expanded ? "expanded" : "collapsed"}`}>
-      <div className="ambient" style={{ left: cursor.x * 0.03, top: cursor.y * 0.02 }} />
-      <header className="topbar">
-        <div className="brand">
-          <div className="avatar"><Bot size={20} /></div>
-          <div>
-            <strong>CURSAI</strong>
-            <span>{status}</span>
-          </div>
-        </div>
-        <div className="actions">
-          <button title="Minimize" onClick={() => setExpanded(false)}><ChevronDown size={17}/></button>
-          <button title="Close" onClick={() => window.cursai.window.hide()}><X size={17}/></button>
-        </div>
-      </header>
-
-      {!expanded ? (
-        <button className="orb" onClick={() => setExpanded(true)} aria-label="Open Cursai">
-          <Sparkles size={23}/>
-        </button>
-      ) : (
-        <>
-          <section className="hero">
-            <div className="character">
-              <div className="eye left" /><div className="eye right" />
-              <div className="mouth" />
-              <div className="character-glow" />
-            </div>
-            <div>
-              <h1>What can I do?</h1>
-              <p>Your always-on Windows AI companion.</p>
-            </div>
-          </section>
-
-          <section className="feature-grid">
-            {features.map(({ icon: Icon, label, desc }) => (
-              <button key={label} className="feature">
-                <Icon size={17}/><span><b>{label}</b><small>{desc}</small></span>
-              </button>
-            ))}
-          </section>
-
-          <section className="chat">
-            <div className="messages">
-              {messages.slice(-5).map((m, i) => (
-                <div key={i} className={`message ${m.role}`}>{m.text}</div>
-              ))}
-              {thinking && <div className="message assistant pulse">Thinking…</div>}
-            </div>
-            <div className="composer">
-              <button title="Attach"><Paperclip size={18}/></button>
-              <input
-                value={input}
-                onChange={e => setInput(e.target.value)}
-                onKeyDown={e => { if (e.key === "Enter") ask(); }}
-                placeholder="Ask Cursai anything…"
-              />
-              <button title="Voice"><Mic size={18}/></button>
-              <button className="send" onClick={ask} title="Send"><Sparkles size={17}/></button>
-            </div>
-          </section>
-
-          <footer>
-            <span><Grip size={14}/> Ctrl + Space</span>
-            <button title="Settings"><Settings size={15}/></button>
-          </footer>
-        </>
-      )}
-    </main>
-  );
+  return <main className={"shell "+(expanded?"expanded":"collapsed")}>
+    <div className="ambient" style={{left:cursor.x*.03,top:cursor.y*.02}}/>
+    <header className="topbar"><div className="brand"><div className={"avatar "+(thinking?"thinking":"")}><Bot size={20}/></div><div><strong>CURSAI</strong><span>{thinking?"Working…":"Ready"}</span></div></div><div className="actions"><button title="Compact" onClick={()=>setExpanded(false)}><ChevronDown size={17}/></button><button title="Hide" onClick={()=>window.cursai.window.hide()}><X size={17}/></button></div></header>
+    {!expanded?<button className="orb" onClick={()=>setExpanded(true)}><Sparkles size={23}/></button>:<>
+      <section className="hero"><div className={"character "+(thinking?"active":"")}><div className="eye left"/><div className="eye right"/><div className="mouth"/><div className="character-glow"/></div><div><h1>{vision?"Looking at your screen":"What can I do?"}</h1><p>{vision?"Cursai is analysing your current display.":"Your always-on Windows AI companion."}</p></div></section>
+      <section className="feature-grid">{features.map(({icon:Icon,label,desc})=><button key={label} className={"feature "+(((label==="AI"&&mode==="chat")||(label==="Control"&&mode==="control")||(label==="Dev"&&mode==="settings"))?"selected":""))} onClick={()=>label==="Vision"?inspectScreen():label==="Control"?setMode("control"):label==="Dev"?setMode("settings"):setMode("chat")}><Icon size={17}/><span><b>{label}</b><small>{desc}</small></span></button>)}</section>
+      {mode==="control"?<section className="panel"><div className="panel-title"><span><MousePointer2 size={15}/> PC Control</span><small>Explicit actions only</small></div><div className="control-grid">
+        <button onClick={()=>pc(async()=>{const d=await window.cursai.screen.display();const a=d.workArea as any;await window.cursai.pc.move(a.x+a.width/2,a.y+a.height/2)})}>Move center</button><button onClick={()=>pc(()=>window.cursai.pc.click("left"))}>Left click</button><button onClick={()=>pc(()=>window.cursai.pc.click("right"))}>Right click</button><button onClick={()=>pc(()=>window.cursai.pc.scroll(-600))}>Scroll down</button><button onClick={()=>pc(()=>window.cursai.pc.scroll(600))}>Scroll up</button><button onClick={()=>pc(()=>window.cursai.pc.hotkey(["ctrl","c"]))}>Ctrl + C</button><button onClick={()=>pc(()=>window.cursai.pc.hotkey(["ctrl","v"]))}>Ctrl + V</button><button onClick={()=>pc(()=>window.cursai.pc.press("enter"))}>Enter</button>
+      </div><div className="type-row"><input id="pc-type" placeholder="Text to type…"/><button onClick={()=>pc(()=>window.cursai.pc.type((document.getElementById("pc-type") as HTMLInputElement).value))}><Keyboard size={15}/></button></div></section>
+      :mode==="settings"?<section className="panel settings"><div className="panel-title"><span><Settings size={15}/> Settings</span><small>Saved locally</small></div><label><span>Always on top</span><input type="checkbox" checked={settings.alwaysOnTop} onChange={e=>saveSetting("alwaysOnTop",e.target.checked)}/></label><label><span>Voice input</span><input type="checkbox" checked={settings.voice} onChange={e=>saveSetting("voice",e.target.checked)}/></label><button className="link-button" onClick={()=>window.cursai.system.open("https://github.com/pprdxqq/cursai")}>Open Cursai on GitHub</button></section>
+      :<section className="chat"><div className="messages">{messages.slice(-7).map((m,i)=><div key={i} className={"message "+m.role}>{m.text}</div>)}{thinking&&<div className="message assistant pulse">Thinking…</div>}</div><div className="composer"><button title="Attach file" onClick={attach}><Paperclip size={18}/></button><input value={input} onChange={e=>setInput(e.target.value)} onKeyDown={e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();ask()}}} placeholder="Ask Cursai anything…"/><button title={recording?"Stop recording":"Voice"} className={recording?"recording":""} disabled={!settings.voice} onClick={toggleVoice}>{recording?<Square size={16}/>:<Mic size={18}/>}</button><button className="send" onClick={()=>ask()} disabled={thinking} title="Send"><Send size={16}/></button></div></section>}
+      <footer><span><Grip size={14}/> Ctrl + Space</span><button title="Settings" onClick={()=>setMode("settings")}><Settings size={15}/></button></footer>
+    </>}
+  </main>
 }
