@@ -1,32 +1,39 @@
-# React + TypeScript + Vite
+# Cursai
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+Cursai is a Windows-first AI desktop companion built for fast, contextual interaction with your PC.
 
-Currently, two official plugins are available:
+## Foundation
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+- Frameless always-on-top companion window
+- Global **Ctrl + Space** launcher
+- Compact animated Cursai orb
+- OpenAI Responses API chat
+- Screen/window source discovery
+- Cursor-aware ambient interaction
+- Collapsible compact mode
+- Electron context isolation + preload bridge
+- React + TypeScript + Vite frontend
+- Windows packaging configuration
 
-## React Compiler
+## Architecture roadmap
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+- Voice input/output
+- Screen vision and contextual assistance
+- Safe PC control with explicit confirmations
+- Coding-agent monitoring
+- GitHub/project awareness
+- Integrations layer
+- Persistent local settings and memory
+- Windows startup/tray
+- Production signing, packaging and updates
 
-## Expanding the Oxlint configuration
+## Development
 
-If you are developing a production application, we recommend enabling type-aware lint rules by installing `oxlint-tsgolint` and editing `.oxlintrc.json`:
-
-```json
-{
-  "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": ["react", "typescript", "oxc"],
-  "options": {
-    "typeAware": true
-  },
-  "rules": {
-    "react/rules-of-hooks": "error",
-    "react/only-export-components": ["warn", { "allowConstantExport": true }]
-  }
-}
+```bash
+npm install
+npm run dev
 ```
 
-See the [Oxlint rules documentation](https://oxc.rs/docs/guide/usage/linter/rules) for the full list of rules and categories.
+Create a local `.env` with `OPENAI_API_KEY=...` to enable AI requests.
+
+Cursai uses its own branding, character and UI implementation. Coucou is used as product inspiration only; its reserved character/media assets are not included.
