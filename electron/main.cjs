@@ -3,6 +3,7 @@ const { app, BrowserWindow, globalShortcut, ipcMain, desktopCapturer, screen, sh
 const path = require("path");
 const fs = require("fs");
 const OpenAI = require("openai");
+const { execFile } = require("child_process");
 const { mouse, keyboard, Button, Key, Point } = require("@nut-tree-fork/nut-js");
 
 let win = null;
@@ -31,8 +32,9 @@ ipcMain.handle("screen:display",()=>{const p=screen.getCursorScreenPoint(),d=scr
 ipcMain.handle("system:open",async(_,u)=>{if(typeof u!=="string"||!/^https?:\/\//i.test(u))return false;await shell.openExternal(u);return true;});
 ipcMain.handle("system:cwd",()=>process.cwd());
 
-ipcMain.handle("settings:get",()=>{try{return JSON.parse(fs.readFileSync(settingsFile(),"utf8"));}catch{return{voice:true,alwaysOnTop:true};}});
-ipcMain.handle("settings:set",(_,patch)=>{let c={};try{c=JSON.parse(fs.readFileSync(settingsFile(),"utf8"));}catch{}const n={...c,...(patch||{})};fs.mkdirSync(path.dirname(settingsFile()),{recursive:true});fs.writeFileSync(settingsFile(),JSON.stringify(n,null,2));if(typeof n.alwaysOnTop==="boolean")win?.setAlwaysOnTop(n.alwaysOnTop,"floating");return n;});
+ipcMain.handle("settings:get",()=>{try{return JSON.parse(fs.readFileSync(settingsFile(),"utf8"));}catch{return{voice:true,alwaysOnTop:true,launchOnStartup:false};}});
+ipcMain.handle("settings:set",(_,patch)=>{let c={};try{c=JSON.parse(fs.readFileSync(settingsFile(),"utf8"));}catch{}const n={...c,...(patch||{})};fs.mkdirSync(path.dirname(settingsFile()),{recursive:true});fs.writeFileSync(settingsFile(),JSON.stringify(n,null,2));if(typeof n.alwaysOnTop==="boolean")win?.setAlwaysOnTop(n.alwaysOnTop,"floating");if(typeof n.launchOnStartup==="boolean")app.setLoginItemSettings({openAtLogin:n.launchOnStartup});return n;});
+ipcMain.handle("agents:status",()=>new Promise(resolve=>{if(process.platform!=="win32"){resolve([]);return;}execFile("tasklist",["/FO","CSV","/NH"],{windowsHide:true,maxBuffer:2e6},(err,stdout)=>{if(err){resolve([]);return;}const names=["claude","codex","cursor","gemini","antigravity","windsurf"];const rows=String(stdout).toLowerCase().split(/\\r?\\n/);resolve(names.map(name=>({name,running:rows.some(row=>row.includes(name))})));}));
 
 ipcMain.handle("pc:position",async()=>{const p=await mouse.getPosition();return{x:p.x,y:p.y};});
 ipcMain.handle("pc:move",async(_,x,y)=>{await mouse.setPosition(new Point(Math.round(Number(x)),Math.round(Number(y))));return{success:true};});
