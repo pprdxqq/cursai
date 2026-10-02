@@ -1,7 +1,7 @@
 {
   "name": "cursai",
   "private": true,
-  "version": "0.0.0",
+  "version": "0.1.0",
   "type": "module",
   "scripts": {
     "dev": "concurrently npm:dev:web npm:dev:electron",
@@ -9,7 +9,8 @@
     "lint": "oxlint",
     "preview": "vite preview",
     "dev:web": "vite",
-    "dev:electron": "wait-on http://localhost:5173 && electron ."
+    "dev:electron": "wait-on http://localhost:5173 && electron .",
+    "package": "electron-builder"
   },
   "dependencies": {
     "@fontsource/inter": "^5.3.0",
@@ -36,5 +37,11 @@
     "typescript": "~6.0.2",
     "vite": "^8.3.0"
   },
-  "main": "electron/main.cjs"
+  "main": "electron/main.cjs",
+  "build": {
+    "appId": "com.prdxq.cursai",
+    "productName": "Cursai",
+    "files": ["dist/**/*", "electron/**/*", "package.json"],
+    "win": { "target": "nsis" }
+  }
 }
