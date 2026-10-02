@@ -17,7 +17,7 @@ function getOpenAI() {
 function createWindow() {
   win = new BrowserWindow({ width:440,height:720,minWidth:380,minHeight:520,frame:false,transparent:true,resizable:true,alwaysOnTop:true,skipTaskbar:false,show:false,
     webPreferences:{preload:path.join(__dirname,"preload.cjs"),contextIsolation:true,nodeIntegration:false,sandbox:false} });
-  win.setAlwaysOnTop(true,"floating"); win.loadURL("http://localhost:5173"); win.on("closed",()=>{win=null;});
+  win.setAlwaysOnTop(true,"floating"); if(app.isPackaged) win.loadFile(path.join(__dirname,"../dist/index.html")); else win.loadURL("http://localhost:5173"); win.on("closed",()=>{win=null;});
 }
 function toggleWindow(){ if(!win)createWindow(); if(win.isVisible())win.hide();else{win.show();win.focus();} }
 function apiError(e){return e?.error?.message||e?.message||"Unbekannter Fehler.";}
