@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState } from "react";
-import { Bot, Brain, Camera, ChevronDown, Command, Github, Grip, Keyboard, Mic, Paperclip, Settings, Sparkles, X, MousePointer2, Send, Square } from "lucide-react";
+import { Bot, Brain, Camera, ChevronDown, Command, GitBranch, Grip, Keyboard, Mic, Paperclip, Settings, Sparkles, X, MousePointer2, Send, Square } from "lucide-react";
 
 type Message={role:"user"|"assistant";text:string};
 type Mode="chat"|"control"|"settings";
-const features=[{icon:Brain,label:"AI",desc:"Chat & reasoning"},{icon:Camera,label:"Vision",desc:"See your screen"},{icon:Command,label:"Control",desc:"Control your PC"},{icon:Github,label:"Dev",desc:"Developer mode"}];
+const features=[{icon:Brain,label:"AI",desc:"Chat & reasoning"},{icon:Camera,label:"Vision",desc:"See your screen"},{icon:Command,label:"Control",desc:"Control your PC"},{icon:GitBranch,label:"Dev",desc:"Developer mode"}];
 
 export default function App(){
   const [expanded,setExpanded]=useState(true),[mode,setMode]=useState<Mode>("chat"),[input,setInput]=useState(""),[thinking,setThinking]=useState(false),[recording,setRecording]=useState(false),[messages,setMessages]=useState<Message[]>([{role:"assistant",text:"Hey. I’m Cursai. What are we building?"}]),[cursor,setCursor]=useState({x:0,y:0}),[vision,setVision]=useState(false),[settings,setSettings]=useState({voice:true,alwaysOnTop:true,launchOnStartup:false}),[agents,setAgents]=useState<Array<{name:string;running:boolean}>>([]);
